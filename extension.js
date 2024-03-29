@@ -23,7 +23,7 @@ const EDGE_SIZE = 100; // %
 
 const BottomOverview = GObject.registerClass(
 class BottomOverview extends Clutter.Actor {
-    _init(layoutManager, monitor, x, y) {
+    _init(monitor, x, y) {
         super._init();
 
         this._monitor = monitor;
@@ -52,10 +52,11 @@ class BottomOverview extends Clutter.Actor {
         if (size > 0) {
             size = this._monitor.width * this._edgeSize;
             let x_offset = (this._monitor.width - size) / 2;
-            this._barrier = new Meta.Barrier({display: global.display,
-                                                x1: this._x + x_offset, x2: this._x + x_offset + size,
-                                                y1: this._y, y2: this._y,
-                                                directions: Meta.BarrierDirection.NEGATIVE_Y});
+            this._barrier = new Meta.Barrier({
+                backend: global.backend,
+                x1: this._x + x_offset, x2: this._x + x_offset + size,
+                y1: this._y, y2: this._y,
+                directions: Meta.BarrierDirection.NEGATIVE_Y});
             this._pressureBarrier.addBarrier(this._barrier);
         }
     }
@@ -76,7 +77,7 @@ class BottomOverview extends Clutter.Actor {
     }
 });
 
-export default class PanelFreeExtension {
+export default class BottomOverviewExtension {
     _updateHotEdges() {
         for (let i = 0; i < Main.layoutManager.monitors.length; i++) {
             let monitor = Main.layoutManager.monitors[i];
@@ -99,7 +100,7 @@ export default class PanelFreeExtension {
             }
 
             if (haveBottom) {
-                let edge = new BottomOverview(Main.layoutManager, monitor, leftX, bottomY);
+                let edge = new BottomOverview(monitor, leftX, bottomY);
                 edge.setBarrierSize(size);
                 Main.layoutManager.hotCorners.push(edge);
             } else {
@@ -110,7 +111,7 @@ export default class PanelFreeExtension {
 
     enable() {
         Main.layoutManager.connectObject('hot-corners-changed', this._updateHotEdges.bind(this), this);
-        Main.overview.connectObject('hidden', this._updateHotEdges.bind(this), this);
+        //Main.overview.connectObject('hidden', this._updateHotEdges.bind(this), this);
 
         Main.layoutManager._updateHotCorners();
     }
