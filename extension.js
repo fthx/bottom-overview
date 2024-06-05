@@ -1,7 +1,7 @@
 /*
     Bottom Overview
     GNOME Shell 45+ extension
-    Copyright @fthx 2023
+    Copyright @fthx 2024
     A huge part of the code is adapted from @jdoda's Hot Edge extension
     License GPL v3
 */
@@ -39,7 +39,7 @@ class BottomOverview extends Clutter.Actor {
                                                             Shell.ActionMode.OVERVIEW);
 
         this._pressureBarrier.connectObject('trigger', this._toggleOverview.bind(this), this);
-        this.connectObject('destroy', this._onDestroy.bind(this), this);
+        this.connectObject('destroy', this._destroy.bind(this), this);
     }
 
     setBarrierSize(size) {
@@ -69,16 +69,20 @@ class BottomOverview extends Clutter.Actor {
         }
     }
 
-    _onDestroy() {
+    _destroy() {
         this.setBarrierSize(0);
 
         this._pressureBarrier.destroy();
         this._pressureBarrier = null;
+
+        super.destroy();
     }
 });
 
 export default class BottomOverviewExtension {
     _updateHotEdges() {
+        Main.layoutManager._destroyHotCorners();
+
         for (let i = 0; i < Main.layoutManager.monitors.length; i++) {
             let monitor = Main.layoutManager.monitors[i];
             let leftX = monitor.x;
@@ -111,16 +115,11 @@ export default class BottomOverviewExtension {
 
     enable() {
         Main.layoutManager.connectObject('hot-corners-changed', this._updateHotEdges.bind(this), this);
-        //Main.overview.connectObject('hidden', this._updateHotEdges.bind(this), this);
-
-        Main.layoutManager._updateHotCorners();
+        this._updateHotEdges();
     }
 
     disable() {
         Main.layoutManager.disconnectObject(this);
-        Main.overview.disconnectObject(this);
-
-        Main.panel.show();
         Main.layoutManager._updateHotCorners();
     }
 }
