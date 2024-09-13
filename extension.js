@@ -2,7 +2,7 @@
     Bottom Overview
     GNOME Shell 45+ extension
     Copyright @fthx 2024
-    A huge part of the code is adapted from @jdoda's Hot Edge extension
+    Adapted from @jdoda's Hot Edge and GNOME Shell's layout.js
     License GPL v3
 */
 
@@ -33,10 +33,10 @@ class BottomOverview extends Clutter.Actor {
         this._edgeSize = EDGE_SIZE / 100;
         this._pressureThreshold = PRESSURE_TRESHOLD;
 
-        this._pressureBarrier = new Layout.PressureBarrier(this._pressureThreshold,
-                                                            HOT_EDGE_PRESSURE_TIMEOUT,
-                                                            Shell.ActionMode.NORMAL |
-                                                            Shell.ActionMode.OVERVIEW);
+        this._pressureBarrier = new Layout.PressureBarrier(
+            this._pressureThreshold,
+            HOT_EDGE_PRESSURE_TIMEOUT,
+            Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW);
 
         this._pressureBarrier.connectObject('trigger', this._toggleOverview.bind(this), this);
         this.connectObject('destroy', this._destroy.bind(this), this);
@@ -91,6 +91,7 @@ export default class BottomOverviewExtension {
             let size = monitor.width;
 
             let haveBottom = true;
+
             for (let j = 0; j < Main.layoutManager.monitors.length; j++) {
                 if (j != i) {
                     let otherMonitor = Main.layoutManager.monitors[j];
@@ -105,6 +106,7 @@ export default class BottomOverviewExtension {
 
             if (haveBottom) {
                 let edge = new BottomOverview(monitor, leftX, bottomY);
+
                 edge.setBarrierSize(size);
                 Main.layoutManager.hotCorners.push(edge);
             } else {
@@ -115,11 +117,13 @@ export default class BottomOverviewExtension {
 
     enable() {
         Main.layoutManager.connectObject('hot-corners-changed', this._updateHotEdges.bind(this), this);
+
         this._updateHotEdges();
     }
 
     disable() {
         Main.layoutManager.disconnectObject(this);
+
         Main.layoutManager._updateHotCorners();
     }
 }
