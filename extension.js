@@ -1,7 +1,7 @@
 /*
     Bottom Overview
     GNOME Shell 45+ extension
-    Copyright @fthx 2024
+    Copyright @fthx 2025
     Adapted from @jdoda's Hot Edge and GNOME Shell's layout.js
     License GPL v3
 */
@@ -38,13 +38,13 @@ class BottomOverview extends Clutter.Actor {
             HOT_EDGE_PRESSURE_TIMEOUT,
             Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW);
 
-        this._pressureBarrier.connectObject('trigger', this._toggleOverview.bind(this), this);
+        this._pressureBarrier?.connectObject('trigger', this._toggleOverview.bind(this), this);
         this.connectObject('destroy', this._destroy.bind(this), this);
     }
 
     setBarrierSize(size) {
         if (this._barrier) {
-            this._pressureBarrier.removeBarrier(this._barrier);
+            this._pressureBarrier?.removeBarrier(this._barrier);
             this._barrier.destroy();
             this._barrier = null;
         }
@@ -52,27 +52,32 @@ class BottomOverview extends Clutter.Actor {
         if (size > 0) {
             size = this._monitor.width * this._edgeSize;
             let x_offset = (this._monitor.width - size) / 2;
+
             this._barrier = new Meta.Barrier({
                 backend: global.backend,
                 x1: this._x + x_offset, x2: this._x + x_offset + size,
                 y1: this._y, y2: this._y,
                 directions: Meta.BarrierDirection.NEGATIVE_Y});
-            this._pressureBarrier.addBarrier(this._barrier);
+            this._pressureBarrier?.addBarrier(this._barrier);
         }
+    }
+
+    vfunc_leave_event(event) {
+        return Clutter.EVENT_PROPAGATE;
     }
 
     _toggleOverview() {
         if (Main.overview.shouldToggleByCornerOrButton()
                 && !(global.get_pointer()[2] & Clutter.ModifierType.BUTTON1_MASK)
-                && !this._monitor.inFullscreen) {
+                && !this._monitor.inFullscreen)
             Main.overview.toggle();
-        }
     }
 
     _destroy() {
         this.setBarrierSize(0);
 
-        this._pressureBarrier.destroy();
+        this._pressureBarrier?.disconnectObject(this);
+        this._pressureBarrier?.destroy();
         this._pressureBarrier = null;
 
         super.destroy();
@@ -98,9 +103,8 @@ export default class BottomOverviewExtension {
                     let otherLeftX = otherMonitor.x;
                     let otherRightX = otherMonitor.x + otherMonitor.width;
                     let otherTopY = otherMonitor.y;
-                    if (otherTopY >= bottomY && otherLeftX < rightX && otherRightX > leftX) {
+                    if (otherTopY >= bottomY && otherLeftX < rightX && otherRightX > leftX)
                         haveBottom = false;
-                    }
                 }
             }
 
@@ -109,21 +113,18 @@ export default class BottomOverviewExtension {
 
                 edge.setBarrierSize(size);
                 Main.layoutManager.hotCorners.push(edge);
-            } else {
+            } else
                 Main.layoutManager.hotCorners.push(null);
-            }
         }
     }
 
     enable() {
         Main.layoutManager.connectObject('hot-corners-changed', this._updateHotEdges.bind(this), this);
-
         this._updateHotEdges();
     }
 
     disable() {
         Main.layoutManager.disconnectObject(this);
-
         Main.layoutManager._updateHotCorners();
     }
 }
