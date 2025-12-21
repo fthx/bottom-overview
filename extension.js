@@ -16,7 +16,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 
 const PRESSURE_THRESHOLD = 150; // px
-const HOT_EDGE_PRESSURE_TIMEOUT = 1000; // ms
+const HOT_EDGE_PRESSURE_TIMEOUT = 500; // ms
 
 const BottomOverview = GObject.registerClass(
     class BottomOverview extends Clutter.Actor {
@@ -42,16 +42,30 @@ const BottomOverview = GObject.registerClass(
             const monitors = Main.layoutManager.monitors;
 
             for (const monitor of monitors) {
-                const barrier = new Meta.Barrier({
-                    backend: global.backend,
-                    x1: monitor.x,
-                    y1: monitor.y + monitor.height,
-                    x2: monitor.x + monitor.width,
-                    y2: monitor.y + monitor.height,
-                    directions: Meta.BarrierDirection.NEGATIVE_Y
-                });
+                let hasBottom = true;
 
-                this._pressureBarrier?.addBarrier(barrier);
+                for (const otherMonitor of monitors) {
+                    if (otherMonitor === monitor)
+                        continue;
+
+                    if (otherMonitor.y >= monitor.y + monitor.height
+                        && otherMonitor.x < monitor.x + monitor.width
+                        && otherMonitor.x + otherMonitor.width > monitor.x)
+                        hasBottom = false;
+                }
+
+                if (hasBottom) {
+                    const barrier = new Meta.Barrier({
+                        backend: global.backend,
+                        x1: monitor.x,
+                        y1: monitor.y + monitor.height,
+                        x2: monitor.x + monitor.width,
+                        y2: monitor.y + monitor.height,
+                        directions: Meta.BarrierDirection.NEGATIVE_Y
+                    });
+
+                    this._pressureBarrier?.addBarrier(barrier);
+                }
             }
         }
 
@@ -98,39 +112,6 @@ const BottomOverview = GObject.registerClass(
     });
 
 export default class BottomOverviewExtension {
-    /*_updateHotEdges() {
-        Main.layoutManager._destroyHotCorners();
-
-        for (let i = 0; i < Main.layoutManager.monitors.length; i++) {
-            let monitor = Main.layoutManager.monitors[i];
-            let leftX = monitor.x;
-            let rightX = monitor.x + monitor.width;
-            let bottomY = monitor.y + monitor.height;
-            let size = monitor.width;
-
-            let haveBottom = true;
-
-            for (let j = 0; j < Main.layoutManager.monitors.length; j++) {
-                if (j != i) {
-                    let otherMonitor = Main.layoutManager.monitors[j];
-                    let otherLeftX = otherMonitor.x;
-                    let otherRightX = otherMonitor.x + otherMonitor.width;
-                    let otherTopY = otherMonitor.y;
-                    if (otherTopY >= bottomY && otherLeftX < rightX && otherRightX > leftX)
-                        haveBottom = false;
-                }
-            }
-
-            if (haveBottom) {
-                let edge = new BottomOverview(monitor, leftX, bottomY);
-
-                edge.setBarrierSize(size);
-                Main.layoutManager.hotCorners.push(edge);
-            } else
-                Main.layoutManager.hotCorners.push(null);
-        }
-    }*/
-
     enable() {
         this._bottomOverview = new BottomOverview();
     }
