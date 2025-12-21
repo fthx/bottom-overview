@@ -1,7 +1,12 @@
 {
-  "description": "Overview appears when hovering the bottom of your screen.",
+  "description": "Overview appears when hovering the bottom of any monitor.",
   "name": "Bottom Overview",
-  "shell-version": ["46", "47", "48"],
+  "shell-version": [
+    "46",
+    "47",
+    "48",
+    "49"
+  ],
   "url": "https://github.com/fthx/bottom-overview",
   "uuid": "bottom-overview@fthx",
   "version": 999
