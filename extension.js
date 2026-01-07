@@ -1,7 +1,7 @@
 /*
     Bottom Overview
-    GNOME Shell 45+ extension
-    @fthx 2025
+    GNOME Shell 46+ extension
+    @fthx 2026
 */
 
 
@@ -26,7 +26,7 @@ const BottomOverview = GObject.registerClass(
             this._initPressureBarrier();
             this._setHotEdges();
 
-            Main.layoutManager.connectObject('hot-corners-changed', () => this._setHotEdges(), this);
+            Main.layoutManager.connectObject('monitors-changed', () => this._setHotEdges(), this);
         }
 
         _initPressureBarrier() {
@@ -42,25 +42,27 @@ const BottomOverview = GObject.registerClass(
             const monitors = Main.layoutManager.monitors;
 
             for (const monitor of monitors) {
+                const { width: width, height: height, x, y } = monitor;
+
                 let hasBottom = true;
 
                 for (const otherMonitor of monitors) {
                     if (otherMonitor === monitor)
                         continue;
 
-                    if (otherMonitor.y >= monitor.y + monitor.height
-                        && otherMonitor.x < monitor.x + monitor.width
-                        && otherMonitor.x + otherMonitor.width > monitor.x)
+                    if (otherMonitor.y >= y + height
+                        && otherMonitor.x < x + width
+                        && otherMonitor.x + otherMonitor.width > x)
                         hasBottom = false;
                 }
 
                 if (hasBottom) {
                     const barrier = new Meta.Barrier({
                         backend: global.backend,
-                        x1: monitor.x,
-                        y1: monitor.y + monitor.height,
-                        x2: monitor.x + monitor.width,
-                        y2: monitor.y + monitor.height,
+                        x1: x,
+                        y1: y + height,
+                        x2: x + width,
+                        y2: y + height,
                         directions: Meta.BarrierDirection.NEGATIVE_Y
                     });
 
@@ -72,9 +74,6 @@ const BottomOverview = GObject.registerClass(
         _setHotEdges() {
             this._destroyBarriers();
 
-            if (this._hotEdgeTimeout)
-                GLib.Source.remove(this._hotEdgeTimeout);
-
             this._hotEdgeTimeout = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
                 this._setBarriers();
 
@@ -84,9 +83,11 @@ const BottomOverview = GObject.registerClass(
         }
 
         _destroyBarriers() {
-            for (let barrier of this._pressureBarrier?._barriers) {
+            while (this._pressureBarrier?._barriers.length > 0) {
+                const barrier = this._pressureBarrier?._barriers[0];
+
                 this._pressureBarrier?.removeBarrier(barrier);
-                barrier?.destroy();
+                barrier.destroy();
                 barrier = null;
             }
         }
@@ -104,6 +105,7 @@ const BottomOverview = GObject.registerClass(
             }
 
             Main.layoutManager.disconnectObject(this);
+
             this._destroyBarriers();
             this._destroyPressureBarrier();
 
@@ -112,11 +114,20 @@ const BottomOverview = GObject.registerClass(
     });
 
 export default class BottomOverviewExtension {
-    enable() {
+    _initBottomOverview() {
         this._bottomOverview = new BottomOverview();
     }
 
+    enable() {
+        if (Main.layoutManager._startingUp)
+            Main.layoutManager.connectObject('startup-complete', () => this._initBottomOverview(), this);
+        else
+            this._initBottomOverview();
+    }
+
     disable() {
+        Main.layoutManager.disconnectObject(this);
+
         this._bottomOverview?.destroy();
         this._bottomOverview = null;
     }

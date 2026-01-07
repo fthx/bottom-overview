@@ -9,5 +9,8 @@
   ],
   "url": "https://github.com/fthx/bottom-overview",
   "uuid": "bottom-overview@fthx",
-  "version": 999
+  "version": 999,
+  "donations": {
+    "paypal": "fthx75"
+  }
 }
