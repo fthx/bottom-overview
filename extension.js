@@ -88,7 +88,6 @@ const BottomOverview = GObject.registerClass(
 
                 this._pressureBarrier?.removeBarrier(barrier);
                 barrier.destroy();
-                barrier = null;
             }
         }
 
