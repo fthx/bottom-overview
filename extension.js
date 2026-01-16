@@ -16,7 +16,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 
 const PRESSURE_THRESHOLD = 150; // px
-const HOT_EDGE_PRESSURE_TIMEOUT = 500; // ms
+const HOT_EDGE_PRESSURE_TIMEOUT = 1000; // ms
 
 const BottomOverview = GObject.registerClass(
     class BottomOverview extends Clutter.Actor {
@@ -35,11 +35,37 @@ const BottomOverview = GObject.registerClass(
                 HOT_EDGE_PRESSURE_TIMEOUT,
                 Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW);
 
-            this._pressureBarrier?.connectObject('trigger', () => Main.overview.toggle(), this);
+            this._pressureBarrier?.connectObject('trigger', () => this._toggleOverview(), this);
+        }
+
+        _toggleOverview() {
+            const monitor = Main.layoutManager.primaryMonitor;
+
+            if (Main.overview.shouldToggleByCornerOrButton()
+                && !(global.get_pointer()[2] & Clutter.ModifierType.BUTTON1_MASK)
+                && !monitor?.inFullscreen)
+                Main.overview.toggle();
+        }
+
+        _setHotEdges() {
+            this._destroyBarriers();
+
+            if (this._hotEdgesTimeout)
+                GLib.Source.remove(this._hotEdgesTimeout);
+
+            this._hotEdgesTimeout = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                this._setBarriers();
+
+                this._hotEdgesTimeout = null;
+                return GLib.SOURCE_REMOVE;
+            });
         }
 
         _setBarriers() {
             const monitors = Main.layoutManager.monitors;
+
+            if (!monitors)
+                return;
 
             for (const monitor of monitors) {
                 const { width: width, height: height, x, y } = monitor;
@@ -47,7 +73,7 @@ const BottomOverview = GObject.registerClass(
                 let hasBottom = true;
 
                 for (const otherMonitor of monitors) {
-                    if (otherMonitor === monitor)
+                    if (!otherMonitor || otherMonitor === monitor)
                         continue;
 
                     if (otherMonitor.y >= y + height
@@ -71,17 +97,6 @@ const BottomOverview = GObject.registerClass(
             }
         }
 
-        _setHotEdges() {
-            this._destroyBarriers();
-
-            this._hotEdgeTimeout = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-                this._setBarriers();
-
-                this._hotEdgeTimeout = null;
-                return GLib.SOURCE_REMOVE;
-            });
-        }
-
         _destroyBarriers() {
             while (this._pressureBarrier?._barriers.length > 0) {
                 const barrier = this._pressureBarrier?._barriers[0];
@@ -98,9 +113,9 @@ const BottomOverview = GObject.registerClass(
         }
 
         destroy() {
-            if (this._hotEdgeTimeout) {
-                GLib.Source.remove(this._hotEdgeTimeout);
-                this._hotEdgeTimeout = null;
+            if (this._hotEdgesTimeout) {
+                GLib.Source.remove(this._hotEdgesTimeout);
+                this._hotEdgesTimeout = null;
             }
 
             Main.layoutManager.disconnectObject(this);
